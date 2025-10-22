@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "778806206689",
+    "project_id": "loginfirebase-ecd77",
+    "storage_bucket": "loginfirebase-ecd77.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:778806206689:android:eea7ec45a36c5f8b1017a0",
+        "android_client_info": {
+          "package_name": "com.cristiancogollo.unabstore"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDd1mnAru5H04mRC0h83XcgMBtITwD1g9k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
