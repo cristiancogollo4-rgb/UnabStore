@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
@@ -17,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType // Importación estándar
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -29,7 +31,7 @@ import java.util.UUID
 @Composable
 fun HomeScreen(
     onClickLogout: () -> Unit = {},
-    // Inyección del ViewModel (definido en Commit 1)
+    // Inyección del ViewModel: Soluciona el error 'Unresolved reference'
     productViewModel: ProductViewModel = viewModel()
 ) {
     val auth = Firebase.auth
@@ -56,10 +58,20 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             MediumTopAppBar(
-                title = { Text("Unab Shop", fontWeight = FontWeight.Bold, fontSize = 28.sp) },
+                title = {
+                    Text(
+                        "Unab Shop",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 28.sp
+                    )
+                },
                 actions = {
-                    IconButton(onClick = { /* Notificaciones */ }) { Icon(Icons.Filled.Notifications, "Notificaciones") }
-                    IconButton(onClick = { /* Carrito */ }) { Icon(Icons.Filled.ShoppingCart, "Carrito") }
+                    IconButton(onClick = { /* Notificaciones */ }) {
+                        Icon(Icons.Filled.Notifications, "Notificaciones")
+                    }
+                    IconButton(onClick = { /* Carrito */ }) {
+                        Icon(Icons.Filled.ShoppingCart, "Carrito")
+                    }
                     IconButton(onClick = {
                         auth.signOut()
                         onClickLogout()
@@ -68,13 +80,15 @@ fun HomeScreen(
                     }
                 },
                 colors = TopAppBarDefaults.mediumTopAppBarColors(
-                    containerColor = Color(0xFFFF9900), titleContentColor = Color.White, actionIconContentColor = Color.White
+                    containerColor = Color(0xFFFF9900),
+                    titleContentColor = Color.White,
+                    actionIconContentColor = Color.White
                 )
             )
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { showAddDialog = true }, // Prepara para el Commit 3
+                onClick = { showAddDialog = true },
                 containerColor = Color(0xFFFF9900),
                 contentColor = Color.White
             ) {
@@ -118,11 +132,10 @@ fun HomeScreen(
                     Text("No hay productos disponibles. ¡Agrega uno!", color = Color.Gray)
                 }
             } else {
-                // LISTAR PRODUCTOS y función de ELIMINAR
+                // LISTAR PRODUCTOS
                 ProductList(
                     productos = productos,
                     onDelete = { id ->
-                        // Llama a la función de eliminación del Commit 1
                         productViewModel.eliminarProducto(id) { success ->
                             if (success) {
                                 mensaje = "Producto eliminado correctamente."
@@ -137,13 +150,19 @@ fun HomeScreen(
         }
     }
 
-    // El diálogo se deja simplificado. La implementación completa viene en el Commit 3.
+    // AGREGAR PRODUCTO (Diálogo) - IMPLEMENTACIÓN COMPLETA
     if (showAddDialog) {
-        AlertDialog(
-            onDismissRequest = { showAddDialog = false },
-            title = { Text("Diálogo para agregar") },
-            text = { Text("La función de agregar se completará en el siguiente commit.") },
-            confirmButton = { Button(onClick = { showAddDialog = false }) { Text("OK") } }
+        AddProductDialog(
+            onDismiss = { showAddDialog = false },
+            onAdd = { producto ->
+                productViewModel.agregarProducto(producto) { success, msg ->
+                    showAddDialog = false
+                    mensaje = msg
+                    if (success) {
+                        loadProducts() // Recargar la lista tras la adición
+                    }
+                }
+            }
         )
     }
 }
@@ -213,4 +232,84 @@ fun ProductItem(producto: Producto, onDelete: (String) -> Unit) {
             }
         }
     }
+}
+
+/**
+ * Diálogo Composable para agregar un nuevo producto.
+ */
+@Composable
+fun AddProductDialog(onDismiss: () -> Unit, onAdd: (Producto) -> Unit) {
+    var nombre by remember { mutableStateOf("") }
+    var descripcion by remember { mutableStateOf("") }
+    var precioText by remember { mutableStateOf("") }
+    var errorMsg by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Add, contentDescription = "Agregar", tint = Color(0xFFFF9900))
+                Spacer(Modifier.width(8.dp))
+                Text("Agregar Nuevo Producto", fontWeight = FontWeight.Bold)
+            }
+        },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = nombre,
+                    onValueChange = { nombre = it },
+                    label = { Text("Nombre") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = descripcion,
+                    onValueChange = { descripcion = it },
+                    label = { Text("Descripción") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = precioText,
+                    onValueChange = {
+                        // Permite solo números y un punto decimal
+                        precioText = it.filter { char -> char.isDigit() || char == '.' }
+                    },
+                    label = { Text("Precio") },
+                    // CORRECCIÓN APLICADA: Usar KeyboardType.Number (como solicitaste para el fix)
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (errorMsg.isNotEmpty()) {
+                    Text(errorMsg, color = Color.Red, style = LocalTextStyle.current.copy(fontSize = 12.sp), modifier = Modifier.padding(top = 8.dp))
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val precio = precioText.toDoubleOrNull()
+                    if (nombre.isBlank() || precio == null || precio <= 0) {
+                        errorMsg = "Verifique que todos los campos sean válidos (Nombre, Precio > 0)."
+                    } else {
+                        val newProduct = Producto(
+                            nombre = nombre.trim(),
+                            descripcion = descripcion.trim(),
+                            precio = precio
+                        )
+                        // Llama a la función de agregar producto del Commit 1
+                        onAdd(newProduct)
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9900))
+            ) {
+                Text("Guardar")
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
 }
