@@ -1,6 +1,5 @@
 package com.cristiancogollo.unabstore
 
-import android.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -24,18 +23,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
+import androidx.lifecycle.viewmodel.compose.viewModel
 
-
-@Preview
+// Se inyecta ProductViewModel para que la app sepa que existe, aunque no lo usemos todavía
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(onClickLogout: () -> Unit={}) {
+fun HomeScreen(
+    onClickLogout: () -> Unit = {},
+    productViewModel: ProductViewModel = viewModel()
+) {
     val auth = Firebase.auth
     val user = auth.currentUser
+
     Scaffold(
         topBar = {
             MediumTopAppBar(
@@ -47,14 +49,17 @@ fun HomeScreen(onClickLogout: () -> Unit={}) {
                     )
                 },
                 actions = {
-                    IconButton(onClick = { }) {
+                    IconButton(onClick = { /* Notificaciones */ }) {
                         Icon(Icons.Filled.Notifications, "Notificaciones")
                     }
-                    IconButton(onClick = { }) {
+                    IconButton(onClick = { /* Carrito */ }) {
                         Icon(Icons.Filled.ShoppingCart, "Carrito")
                     }
-                    IconButton(onClick = { }) {
-                        Icon(Icons.AutoMirrored.Filled.ExitToApp, "Carrito")
+                    IconButton(onClick = {
+                        auth.signOut()
+                        onClickLogout()
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, "Cerrar sesión")
                     }
                 },
                 colors = TopAppBarDefaults.mediumTopAppBarColors(
@@ -63,34 +68,30 @@ fun HomeScreen(onClickLogout: () -> Unit={}) {
                     actionIconContentColor = Color.White
                 )
             )
-        },
-        bottomBar = {
         }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xFFF5F5F5))
-                .padding(paddingValues)
+                .padding(paddingValues),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text("HOME SCREEN", fontSize = 30.sp)
-                if (user != null) {
-                    Text(user.email.toString())
-                } else {
-                    Text("No hay usuario")
-                }
-                Button(onClick = {
+            Text("¡Bienvenido al Panel de Productos!", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            if (user != null) {
+                Text("Usuario: ${user.email}", fontSize = 16.sp, color = Color.Gray)
+            } else {
+                Text("No hay usuario autenticado")
+            }
+            Button(
+                onClick = {
                     auth.signOut()
                     onClickLogout()
-                }, colors = ButtonDefaults.buttonColors(Color(0xffff9900))) {
-                    Text("Cerrar sesión")
-                }
+                },
+                colors = ButtonDefaults.buttonColors(Color(0xffff9900))
+            ) {
+                Text("Cerrar sesión")
             }
         }
     }
