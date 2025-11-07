@@ -10,11 +10,6 @@ class ProductViewModel : ViewModel() {
     private val db = Firebase.firestore
 
     //  Agregar producto
-    /**
-     * Guarda un nuevo producto en Firestore en la colección "Producto".
-     * @param producto El objeto Producto a guardar.
-     * @param onResult Callback que retorna éxito (Boolean) y un mensaje (String).
-     */
     fun agregarProducto(producto: Producto, onResult: (Boolean, String) -> Unit) {
         db.collection("Producto")
             .add(producto)
@@ -27,16 +22,11 @@ class ProductViewModel : ViewModel() {
     }
 
     //  Listar productos
-    /**
-     * Obtiene todos los productos de Firestore.
-     * @param onResult Callback que retorna la lista de productos (incluyendo el ID de Firestore).
-     */
     fun obtenerProductos(onResult: (List<Producto>) -> Unit) {
         db.collection("Producto")
             .get()
             .addOnSuccessListener { result ->
                 val productos = result.map { doc ->
-                    // Mapea el documento a Producto, copiando el ID de Firestore para eliminar/editar
                     doc.toObject(Producto::class.java).copy(id = doc.id)
                 }
                 onResult(productos)
@@ -47,15 +37,36 @@ class ProductViewModel : ViewModel() {
     }
 
     //  Eliminar producto
-    /**
-     * Elimina un producto por su ID de Firestore.
-     * @param id El ID del documento a eliminar.
-     * @param onResult Callback que retorna éxito (Boolean).
-     */
     fun eliminarProducto(id: String, onResult: (Boolean) -> Unit) {
         db.collection("Producto").document(id)
             .delete()
             .addOnSuccessListener { onResult(true) }
             .addOnFailureListener { onResult(false) }
+    }
+
+    //  Editar producto
+    /**
+     * Actualiza un producto existente por su ID de Firestore.
+     * @param producto El objeto Producto con el ID y los datos actualizados.
+     */
+    fun editarProducto(producto: Producto, onResult: (Boolean, String) -> Unit) {
+
+        producto.id?.let { docId ->
+
+            val updates = hashMapOf<String, Any>(
+                "nombre" to producto.nombre,
+                "descripcion" to producto.descripcion,
+                "precio" to producto.precio
+            )
+
+            db.collection("Producto").document(docId)
+                .update(updates)
+                .addOnSuccessListener {
+                    onResult(true, "Producto actualizado correctamente.")
+                }
+                .addOnFailureListener { e ->
+                    onResult(false, "Error al actualizar: ${e.message}")
+                }
+        } ?: onResult(false, "Error: ID de producto no encontrado.")
     }
 }
